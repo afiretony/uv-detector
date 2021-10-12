@@ -1,4 +1,4 @@
-~Jiahao~
+Jiahao
 # Depending Libs
 OpenCV
 Eigen
