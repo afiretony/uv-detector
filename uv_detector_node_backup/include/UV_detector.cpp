@@ -137,8 +137,8 @@ UVdetector::UVdetector()
     this->row_downsample = 4;
     this->col_scale = 0.5;
     this->min_dist = 10;
-    this->max_dist = 5000;
-    this->threshold_point = 2;
+    this->max_dist = 3000; //5000
+    this->threshold_point = 4;// 2
     this->threshold_line = 2;
     this->min_length_line = 8;
     this->show_bounding_box_U = true;
@@ -310,9 +310,24 @@ void UVdetector::display_depth()
     double max;
     int rows = depth.rows;
     int cols = depth.cols;
+    Mat depth_clone ;
+    // = Mat::create(rows, cols, CV_8UC1);
+    depth.copyTo(depth_clone);
+    int a=640;
+    int b=480;
+//
+    //Mat depth_rescale;
+    //resize(this->depth, depth_rescale, Size(),this->col_scale , 1);
+    //Mat depth_low_res_temp = Mat::zeros(depth_rescale.rows, depth_rescale.cols, CV_8UC1);
+    //
+    Mat depth_resize; 
+    resize(depth, depth_resize, Size(), this->col_scale, 1);
+    // cout<< depth_resize<<endl;
     cv::minMaxIdx(this->depth, &min, &max);
     cv::convertScaleAbs(this->depth, this->depth, 255 / max);
     cvtColor(this->depth, this->depth, COLOR_GRAY2RGB);
+    float histSize = this->depth.rows / this->row_downsample;
+    float bin_width = ceil((this->max_dist - this->min_dist) / histSize);
     // cout << depth << endl;
     // just some valid rectangle arguments
     
@@ -322,16 +337,28 @@ void UVdetector::display_depth()
         int y_up = depth.rows;
         int y_down = 0;
         int width = this->bounding_box_U[b].width / col_scale;
+        int bin_index_small = this->bounding_box_U[b].tl().x;
+        int bin_index_large = this->bounding_box_U[b].br().x;
+        // float depth_in_near = (bin_index_small * bin_width + this->min_dist) * this->col_scale;
+        float depth_in_near = (bin_index_small * bin_width + this->min_dist);
+        // float depth_in_far = (bin_index_large * bin_width)  * this->col_scale;
+        float depth_in_far = (bin_index_large * bin_width + this->min_dist);
 
-        //search coloum depth > thres
         cout<< "-------------"<<endl;
-        //cout<<depth<<endl;
+        cout<<depth_in_near<<endl;
+        cout<<depth_in_far<<endl;
         cout<< "-------------"<<endl;
+        //cout<<depth_clone<<endl;
         for (int i=x; i<x+width; i++){ // for each coloum
-            for (int j = 0; j < depth.rows; j++){
-                if (this->depth.at<double>(j, i) > 1){
-                    if(y_up > j) y_up = j;
-                    if(y_down < j) y_down = j;
+            for (int j = 0; j < depth.rows-1; j++){
+                // cout<< depth_resize.at<unsigned short>(j,i)<< endl;
+                // if (depth_clone.at<double>(j, i) >1){
+                if (float(depth_resize.at<unsigned short>(j, i)) >= depth_in_near && float(depth_resize.at<unsigned short>(j, i)) <= depth_in_far){
+                    if(float(depth_resize.at<unsigned short>(j+1, i)) >= depth_in_near && float(depth_resize.at<unsigned short>(j+1, i)) <= depth_in_far){
+                        if(y_up > j) y_up = j;
+                        if(y_down < j) y_down = j;    
+                    }
+                    
                     //cout<<"somethins"<<endl;
                     //y_up = min(y_up, j);
                     //y_down = max(y_down, j);
@@ -340,11 +367,9 @@ void UVdetector::display_depth()
             }
 
         }
-        // cout<<"y_up="<<y_up;
-        // cout<<"y_fown="<<y_down;
         int height = y_down - y_up;
-        cv::Rect rect(x, y_up, width, height);
-        rectangle(this->depth, rect, cv::Scalar(0, 0, 255));
+        cv::Rect rect(x, y_up / col_scale, width, height / col_scale);
+        rectangle(this->depth, rect, cv::Scalar(0, 0, 255), 5, 8, 0);
     }
     
     // our rectangle...
