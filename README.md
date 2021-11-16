@@ -25,6 +25,8 @@ threshold = 0.2 * downsample;
 
 where the downsample is the ratio between depth map's height and U map's height.
 
+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
+
 The second step is connecting all the contiguous candidate points horizontally. For this part, two selecting criteria are used: the line should be longer than a thershold value (we use 15 in our experiments); the sum of the line's pixel value should be larger than 200% of its maximumal pixel value (as suggested by [1][1]). Lines that close to each others are then grouped as a cluster. We then extracted the 2D bounding box by simply extracting the top-left and bottom-right points of each group.
 
 Note that the final bounding box is lightly different with the extracted one, because only the front face of the obstacle is detected, the final bounding box's depth is two times of the extracted one's.
