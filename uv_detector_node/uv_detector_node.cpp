@@ -24,15 +24,28 @@ class my_detector
 {  
 	public:  
 		my_detector()  
-		{  
+		{  	
 			image_transport::ImageTransport it(nh);
 			//Topic subscribed 
 			depsub = it.subscribe("/camera/depth/image_rect_raw", 1, &my_detector::run,this);
-			// marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+			imgsub = it.subscribe("/camera/color/image_raw", 1, &my_detector::imageCallback,this);
 			marker_pub = nh.advertise<visualization_msgs::MarkerArray>("visualization_marker", 1);
 		}  
+		void imageCallback(const sensor_msgs::ImageConstPtr& msg2){
 
-    void run(const sensor_msgs::ImageConstPtr& msg)  
+			cv_bridge::CvImagePtr cv_ptr2;
+			try{
+				cv_ptr2 = cv_bridge::toCvCopy(msg2, sensor_msgs::image_encodings::BGR8); 
+			}
+			catch (cv_bridge::Exception& e){
+				ROS_ERROR("Could not convert from '%s' to 'bgr8'.", e.what());
+			return;
+		}
+		cv::Mat RGB = cv_ptr2->image;
+		this->uv_detector.readrgb(RGB);
+		}
+
+		void run(const sensor_msgs::ImageConstPtr& msg)  
 		{  
 			// image conversion
 			cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_16UC1);
@@ -124,6 +137,7 @@ class my_detector
 	private:  
 		ros::NodeHandle nh;   		// define node
     	image_transport::Subscriber depsub;		// define subscriber for depth image
+		image_transport::Subscriber imgsub;
 		UVdetector uv_detector;
 		ros::Publisher marker_pub;
 		// ros::Publisher obspos_pub;

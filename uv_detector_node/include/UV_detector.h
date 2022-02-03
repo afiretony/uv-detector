@@ -49,7 +49,8 @@ class UVdetector
 {
     public:
     // members
-    Mat depth; // depth map
+    Mat depth; // depth map 
+    Mat RGB;
     Mat depth_low_res; // depth map with low resolution
     Mat U_map; // U map
     int min_dist; // lower bound of range of interest
@@ -75,6 +76,9 @@ class UVdetector
     // read data
     void readdata(Mat depth);
 
+    // read rgb
+    void readrgb(Mat RGB);
+
     // extract U map
     void extract_U_map();
 
@@ -95,6 +99,8 @@ class UVdetector
 
     // display depth
     void display_depth();
+
+    void display_RBG();
 
     // display U map
     void display_U_map();
