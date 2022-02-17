@@ -1,4 +1,6 @@
 #include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/core/types.hpp>
 #include <math.h>
 #include <vector>
 #include <UV_detector.h>
@@ -336,37 +338,36 @@ void UVdetector::detect()
     // extract object's height
     // this->extract_height();
 }
-
 void UVdetector::display_depth()
+{
+    // in order to get a better visualization, we need normalized depth map in range (0, 255)
+    Mat depth_normalized;
+    this->depth.copyTo(depth_normalized);
+    double min, max;
+    cv::minMaxIdx(depth_normalized, &min, &max);
+    cout<<max<<endl;
+    cv::convertScaleAbs(depth_normalized, depth_normalized, 255. / max);
+    // cvtColor(depth_normalized, depth_normalized, COLOR_GRAY2RGB);
+    // to apply cmap, we have to convert the datatype
+    depth_normalized.convertTo(depth_normalized, CV_8UC1);
+    // depth_normalized = 255 - depth_normalized;
+    applyColorMap(depth_normalized, depth_normalized, COLORMAP_JET);
+
+    // loop for adding bounding boxes
+    for (int i=0;i<this->bounding_box_D.size();i++){
+        rectangle(depth_normalized, bounding_box_D[i], cv::Scalar(0, 0, 255), 5, 8, 0);
+    }
+    imshow("Depth", depth_normalized);
+    waitKey(1);
+}
+
+void UVdetector::extract_3Dbox()
 {   
-    // new features
-    double min;
-    double max;
-
-    // int rows = depth.rows;
-    // int cols = depth.cols;
-    Mat depth_clone;
-    depth.copyTo(depth_clone);
-
+    // this function returns 3D boxes in world frame for publishing
     Mat depth_resize;
-    Mat depth_resize_clone;
     resize(depth, depth_resize, Size(), this->col_scale, 1);
-    depth_resize.copyTo(depth_resize_clone);
-    resize(depth, depth_resize, Size(), 1, 1);
-
-    cv::minMaxIdx(depth_resize, &min, &max);
-    cv::convertScaleAbs(depth_resize, depth_resize, 255 / max);
-    cvtColor(depth_resize, depth_resize, COLOR_GRAY2RGB);
-
     float histSize = this->depth.rows / this->row_downsample;
     float bin_width = ceil((this->max_dist - this->min_dist) / histSize);
-    
-    // find relationship between depth map and RGB size
-    int y_scale = this->RGB.rows / depth_resize.rows;
-    // cout<<depth_resize.rows<<endl;
-    // cout<<depth_resize.cols<<endl;
-
-    int x_scale = this->RGB.cols / depth_resize.cols;
     
     int x;
     int y_up;
@@ -378,85 +379,90 @@ void UVdetector::display_depth()
     float depth_of_depth;
     float depth_in_far;
 
-    // test
-    // Mat newdepth
-    // depth_resize_clone.convertTo(depth_resize_clone, CV_8UC1);
-    // depth_resize_clone.copyTo(newdepth);
-    // cv::bilateralFilter(newdepth, depth_resize_clone, 9, 10., 10.);
-    GaussianBlur(depth_resize_clone, depth_resize_clone, Size(5,9), 0, 0);
-    
-    // FOR DEMO
-    Mat smooth_depth;
-    smooth_depth = Mat::zeros(depth_resize.rows, depth_resize.cols, CV_8UC1);
-    // cv::bilateralFilter(depth_resize, depth_resize_clone, 9, 200., 200.);
-    GaussianBlur(depth_resize, smooth_depth, Size(9, 9), 0, 0);
+    int im_frame_x;
+    int im_frame_x_width;
+    int im_frame_y;
+    int im_frame_y_width;
+
+    // GaussianBlur(depth_resize, depth_resize, Size(5,9), 0, 0);
+
+    // parameter for tunning
+    int num_check  = 15;
+
+    this->box3Ds.clear();
+    this->bounding_box_D.clear();
 
     for (int b = 0; b < this->bounding_box_U.size(); b++) {
-
+        // 
         x = this->bounding_box_U[b].tl().x;
+        width = this->bounding_box_U[b].width;
+
         y_up = depth_resize.rows;
         y_down = 0;
-        width = this->bounding_box_U[b].width;
         bin_index_small = this->bounding_box_U[b].tl().y;
-        bin_index_large = this->bounding_box_U[b].br().y - (this->bounding_box_U[b].br().y - this->bounding_box_U[b].tl().y) / 2;
-        // float depth_in_near = (bin_index_small * bin_width + this->min_dist) * this->col_scale;
+        bin_index_large = this->bounding_box_U[b].br().y;
         depth_in_near = (bin_index_small * bin_width + this->min_dist);
-        // float depth_in_far = (bin_index_large * bin_width)  * this->col_scale;
         depth_of_depth = (bin_index_large - bin_index_small) * bin_width;
-        depth_in_far = depth_of_depth*1.8 + depth_in_near;
+        depth_in_far = depth_of_depth*1.8 + depth_in_near; // assumed depth was truncated because of occlusion
 
+        // for debugging
         // cout << "-------------" << endl;
         // cout << depth_in_near << endl;
         // cout << depth_in_far << endl;
         // cout << "-------------" << endl;
-        int num_check  = 15;
+
 
         for (int i = x ; i < x + width; i++) { // for several middle coloums
-            for (int j = 0; j < depth_resize_clone.rows - 1; j++) { // for each row
-                if (float(depth_resize_clone.at<unsigned short>(j, i)) >= depth_in_near && float(depth_resize_clone.at<unsigned short>(j, i)) <= depth_in_far) {
+            for (int j = 0; j < depth_resize.rows - 1; j++) { // for each row
+                if (float(depth_resize.at<unsigned short>(j, i)) >= depth_in_near && float(depth_resize.at<unsigned short>(j, i)) <= depth_in_far) {
                     for (int check = 0; check < num_check; check++) { // check some more points in the coloum
-                        if (float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) < depth_in_near || 
-                        float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) > depth_in_far) {
+                        if (float(depth_resize.at<unsigned short>(j + check + 1, i)) < depth_in_near || 
+                        float(depth_resize.at<unsigned short>(j + check + 1, i)) > depth_in_far) {
                             // bad case
-                            // cout<<"bad case"<<endl;
                             break;
                         }
                         if (check == num_check-1) {
                             if (y_up > j) y_up = j;
                             if (y_down < j) y_down = j;
-
                         }
                     }
                 }
-
             }
-
         }
 
-        int height = y_down - y_up;
-        //cv::Rect rect(x, y_up / col_scale, width, height / col_scale);
-        //rectangle(this->depth, rect, cv::Scalar(0, 0, 255), 5, 8, 0);
+        // save bounding boxes in depth
+        float bb_x = x / this->col_scale;
+        float bb_width = width / this->col_scale;
+        float bb_y = y_up;
+        float bb_height = y_down-y_up;
+        this->bounding_box_D.push_back(Rect(bb_x, bb_y, bb_width, bb_height));
+
+        box3D curr_box;
+        // extract x,y coordinates in input depth frame
+        im_frame_x  = (x + width / 2) / this->col_scale;
+        im_frame_x_width = width / this->col_scale;
         
-        cv::Rect rect(x*2.0, y_up, width*2.0, height);
-        rectangle(smooth_depth, rect, cv::Scalar(0, 0, 255), 5, 8, 0);
-        // cv::Rect rect2(x*x_scale, y_up*y_scale, width*x_scale, height*y_scale);
-        // rectangle(RGB, rect2, cv::Scalar(0, 0, 255), 5, 8, 0);
-
+        int Y_w = (depth_in_near + depth_in_far) / 2;
+        im_frame_y = (y_down + y_up) / 2;
+        im_frame_y_width = y_down - y_up;
+        
+        // image frame to world frame transformation
+        // x axis is remain the same, y in world frame is the depth direction, z in world frame 
+        // is align with -y in image frame 
+        curr_box.x = (im_frame_x-this->px)*Y_w/this->fx;
+        curr_box.z = -(im_frame_y-this->py)*Y_w/this->fy;
+        curr_box.x_width = im_frame_x_width*Y_w/this->fx;
+        curr_box.z_width = im_frame_y_width*Y_w/this->fy;
+        curr_box.y = Y_w;
+        curr_box.y_width = depth_of_depth;
+        box3Ds.push_back(curr_box);
     }
-
-   
-    imshow("Depth", smooth_depth);
-
-    // Mat RGB_resize;
-    // resize(RGB, RGB_resize, Size(), 0.5, 0.5);
-    // imshow("RGB", RGB_resize);
-    waitKey(1);
 }
 
-void UVdetector::display_RBG()
-{
+// void UVdetector::display_RGB()
+// {
 
-}
+// }
 void UVdetector::display_U_map()
 {
     // visualize with bounding box

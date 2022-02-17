@@ -9,6 +9,12 @@
 using namespace std;
 using namespace cv;
 
+struct box3D
+{
+    float x, y, z;
+    float x_width, y_width, z_width;
+};
+
 class UVbox
 {
     public:
@@ -22,6 +28,8 @@ class UVbox
     // constructor for new line
     UVbox(int seg_id, int row, int left, int right);
 };
+
+
 
 class UVtracker
 {
@@ -65,7 +73,11 @@ class UVdetector
     int min_length_line; // min value of line's length
     bool show_bounding_box_U; // show bounding box or not
     vector<Rect> bounding_box_U; // extracted bounding boxes on U map
-    vector<Rect> bounding_box_B; // bunding boxes on the bird's view map
+    vector<Rect> bounding_box_B; // bounding boxes on the bird's view map
+    vector<Rect> bounding_box_D; // bounding boxes on the depth map (not resized)
+    // main output/topic published
+    vector<box3D> box3Ds; // 3D bounding boxes in world frame for output
+
     float fx; // focal length
     float fy;
     float px; // principle point
@@ -102,8 +114,9 @@ class UVdetector
 
     // display depth
     void display_depth();
+    void extract_3Dbox();
 
-    void display_RBG();
+    // void display_RGB();
 
     // display U map
     void display_U_map();
