@@ -141,17 +141,11 @@ UVdetector::UVdetector()
     this->col_scale = 0.5;
     this->min_dist = 10;
     this->max_dist = 5000;
-    this->threshold_point = 2;
-    this->threshold_line = 2;
+    this->threshold_point = 10;
+    this->threshold_line = 10;
     this->min_length_line = 6;
     this->show_bounding_box_U = true;
-    this->fx = 383.91;
-    this->fy = 383.91;
-    // this->px = 318.27;
-    // this->py = 242.18;
-    this->px = 322.776;
-    this->py = 239.792;
-
+    // the following intrinsic parameters can be found in /camera/depth/camera_info
     this->fx = 422.5233;
     this->fy = 422.5233;
     this->px = 426.6043;
@@ -160,30 +154,13 @@ UVdetector::UVdetector()
 
 void UVdetector::readdata(queue<Mat> depthq)
 {
-    // this->depth = depth1;
-    // vector<Point2f> ptsA; 
-    // vector<Point2f> ptsB;
-    // Mat H = findHomography(ptsA, ptsB, CV_RANSAC); // With ransac is more robust to outliers
-
-    // Mat1b warpedA;
-    // warpPerspective(depth1, warpedA, H, depth2.size());
-
-    // Now compute diff
-    // Mat1b res;
-
     this->depth = max(depthq.front(), depthq.back());
-    // imshow("dd",this->depth);
-    //Initialize m
     double minVal; 
     double maxVal; 
     Point minLoc; 
     Point maxLoc;
 
-    minMaxLoc( this->depth, &minVal, &maxVal, &minLoc, &maxLoc );
-
-    // cout << "min val: " << minVal << endl;
-    // cout << "max val: " << maxVal << endl;
-    
+    minMaxLoc( this->depth, &minVal, &maxVal, &minLoc, &maxLoc );   
 }
 
 void UVdetector::readrgb(Mat RGB)
@@ -449,7 +426,7 @@ void UVdetector::extract_3Dbox()
         // image frame to world frame transformation
         // x axis is remain the same, y in world frame is the depth direction, z in world frame 
         // is align with -y in image frame 
-        curr_box.x = (im_frame_x-this->px)*Y_w/this->fx;
+        curr_box.x =  (im_frame_x-this->px)*Y_w/this->fx;
         curr_box.z = -(im_frame_y-this->py)*Y_w/this->fy;
         curr_box.x_width = im_frame_x_width*Y_w/this->fx;
         curr_box.z_width = im_frame_y_width*Y_w/this->fy;
