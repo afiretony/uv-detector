@@ -141,8 +141,8 @@ UVdetector::UVdetector()
     this->col_scale = 0.5;
     this->min_dist = 10;
     this->max_dist = 5000;
-    this->threshold_point = 10;
-    this->threshold_line = 10;
+    this->threshold_point = 3;
+    this->threshold_line = 2;
     this->min_length_line = 6;
     this->show_bounding_box_U = true;
     // the following intrinsic parameters can be found in /camera/depth/camera_info
@@ -322,12 +322,8 @@ void UVdetector::display_depth()
     this->depth.copyTo(depth_normalized);
     double min, max;
     cv::minMaxIdx(depth_normalized, &min, &max);
-    cout<<max<<endl;
     cv::convertScaleAbs(depth_normalized, depth_normalized, 255. / max);
-    // cvtColor(depth_normalized, depth_normalized, COLOR_GRAY2RGB);
-    // to apply cmap, we have to convert the datatype
     depth_normalized.convertTo(depth_normalized, CV_8UC1);
-    // depth_normalized = 255 - depth_normalized;
     applyColorMap(depth_normalized, depth_normalized, COLORMAP_JET);
 
     // loop for adding bounding boxes
