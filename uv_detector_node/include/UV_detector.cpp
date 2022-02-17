@@ -3,6 +3,7 @@
 #include <vector>
 #include <UV_detector.h>
 #include <kalman_filter.h>
+#include <queue>
 
 using namespace std;
 using namespace cv;
@@ -144,18 +145,50 @@ UVdetector::UVdetector()
     this->show_bounding_box_U = true;
     this->fx = 383.91;
     this->fy = 383.91;
-    this->px = 318.27;
-    this->py = 242.18;
+    // this->px = 318.27;
+    // this->py = 242.18;
+    this->px = 322.776;
+    this->py = 239.792;
+
+    this->fx = 422.5233;
+    this->fy = 422.5233;
+    this->px = 426.6043;
+    this->py = 240.3157;
 }
 
-void UVdetector::readdata(Mat depth)
+void UVdetector::readdata(queue<Mat> depthq)
 {
-    this->depth = depth;
+    // this->depth = depth1;
+    // vector<Point2f> ptsA; 
+    // vector<Point2f> ptsB;
+    // Mat H = findHomography(ptsA, ptsB, CV_RANSAC); // With ransac is more robust to outliers
+
+    // Mat1b warpedA;
+    // warpPerspective(depth1, warpedA, H, depth2.size());
+
+    // Now compute diff
+    // Mat1b res;
+
+    this->depth = max(depthq.front(), depthq.back());
+    // imshow("dd",this->depth);
+    //Initialize m
+    double minVal; 
+    double maxVal; 
+    Point minLoc; 
+    Point maxLoc;
+
+    minMaxLoc( this->depth, &minVal, &maxVal, &minLoc, &maxLoc );
+
+    // cout << "min val: " << minVal << endl;
+    // cout << "max val: " << maxVal << endl;
+    
 }
 
 void UVdetector::readrgb(Mat RGB)
 {
     this->RGB = RGB;
+    resize(this->RGB, this->RGB, Size(720,400));
+    imshow("RGB", this->RGB);
 }
 
 void UVdetector::extract_U_map()
@@ -370,22 +403,25 @@ void UVdetector::display_depth()
         depth_in_near = (bin_index_small * bin_width + this->min_dist);
         // float depth_in_far = (bin_index_large * bin_width)  * this->col_scale;
         depth_of_depth = (bin_index_large - bin_index_small) * bin_width;
-        depth_in_far = depth_of_depth*2 + depth_in_near;
+        depth_in_far = depth_of_depth*1.8 + depth_in_near;
 
         // cout << "-------------" << endl;
         // cout << depth_in_near << endl;
         // cout << depth_in_far << endl;
         // cout << "-------------" << endl;
+        int num_check  = 15;
 
         for (int i = x ; i < x + width; i++) { // for several middle coloums
             for (int j = 0; j < depth_resize_clone.rows - 1; j++) { // for each row
                 if (float(depth_resize_clone.at<unsigned short>(j, i)) >= depth_in_near && float(depth_resize_clone.at<unsigned short>(j, i)) <= depth_in_far) {
-                    for (int check = 0; check < 25; check++) { // check some more points in the coloum
-                        if (float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) < depth_in_near && float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) > depth_in_far) {
+                    for (int check = 0; check < num_check; check++) { // check some more points in the coloum
+                        if (float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) < depth_in_near || 
+                        float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) > depth_in_far) {
                             // bad case
+                            // cout<<"bad case"<<endl;
                             break;
                         }
-                        if (check == 24) {
+                        if (check == num_check-1) {
                             if (y_up > j) y_up = j;
                             if (y_down < j) y_down = j;
 
@@ -419,84 +455,7 @@ void UVdetector::display_depth()
 
 void UVdetector::display_RBG()
 {
-    //     // new features
-    // double min;
-    // double max;
-    
-    // int rows = depth.rows;
-    // int cols = depth.cols;
-    // Mat depth_clone;
-    // depth.copyTo(depth_clone);
-    // //
-    //     //Mat depth_rescale;
-    //     //resize(this->depth, depth_rescale, Size(),this->col_scale , 1);
-    //     //Mat depth_low_res_temp = Mat::zeros(depth_rescale.rows, depth_rescale.cols, CV_8UC1);
-    //     //
-    // Mat depth_resize;
-    // Mat depth_resize_clone;
-    // resize(depth, depth_resize, Size(), this->col_scale, 1);
-    // depth_resize.copyTo(depth_resize_clone);
-    // cv::minMaxIdx(depth_resize, &min, &max);
-    // cv::convertScaleAbs(depth_resize, depth_resize, 255 / max);
-    // cvtColor(depth_resize, depth_resize, COLOR_GRAY2RGB);
 
-    // //// cout<< depth_resize<<endl;
-    // //cv::minMaxIdx(this->depth, &min, &max);
-    // //cv::convertScaleAbs(this->depth, this->depth, 255 / max);
-    // // cvtColor(this->depth, this->depth, COLOR_GRAY2RGB);
-
-    // float histSize = this->depth.rows / this->row_downsample;
-    // float bin_width = ceil((this->max_dist - this->min_dist) / histSize);
-    
-    // for (int b = 0; b < this->bounding_box_U.size(); b++) {
-
-    //     int x = this->bounding_box_U[b].tl().x;
-    //     int y_up = depth_resize.rows;
-    //     int y_down = 0;
-    //     int width = this->bounding_box_U[b].width;
-    //     int bin_index_small = this->bounding_box_U[b].tl().y;
-    //     int bin_index_large = this->bounding_box_U[b].br().y - (this->bounding_box_U[b].br().y - this->bounding_box_U[b].tl().y) / 2;
-    //     // float depth_in_near = (bin_index_small * bin_width + this->min_dist) * this->col_scale;
-    //     float depth_in_near = (bin_index_small * bin_width + this->min_dist);
-    //     // float depth_in_far = (bin_index_large * bin_width)  * this->col_scale;
-    //     float depth_in_far = (bin_index_large * bin_width + this->min_dist);
-
-    //     // cout << "-------------" << endl;
-    //     // cout << depth_in_near << endl;
-    //     // cout << depth_in_far << endl;
-    //     // cout << "-------------" << endl;
-
-    //     for (int i = x; i < x + width; i++) { // for each coloum
-    //         for (int j = 0; j < depth_resize_clone.rows - 1; j++) { // for each row
-    //             if (float(depth_resize_clone.at<unsigned short>(j, i)) >= depth_in_near && float(depth_resize_clone.at<unsigned short>(j, i)) <= depth_in_far) {
-    //                 for (int check = 0; check < 10; check++) { // check some more points in the coloum
-    //                     if (float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) < depth_in_near && float(depth_resize_clone.at<unsigned short>(j + check + 1, i)) > depth_in_far) {
-    //                         // bad case
-    //                         break;
-    //                     }
-    //                     if (check == 9) {
-    //                         if (y_up > j) y_up = j;
-    //                         if (y_down < j) y_down = j;
-
-    //                     }
-    //                 }
-    //             }
-
-    //         }
-
-    //     }
-    //     int height = y_down - y_up;
-    //     //cv::Rect rect(x, y_up / col_scale, width, height / col_scale);
-    //     //rectangle(this->depth, rect, cv::Scalar(0, 0, 255), 5, 8, 0);
-    //     cv::Rect rect(x, y_up, width, height);
-    //     rectangle(depth_resize, rect, cv::Scalar(0, 0, 255), 5, 8, 0);
-
-    // }
-    // //rectangle(this->depth, bb, Scalar(0, 0, 255), 1, 8, 0);
-    // //circle(this->depth, Point2f(this->bounding_box_U[0].tl().x + 0.5 * this->bounding_box_U[0].width, this->bounding_box_U[0].br().y ), 2, Scalar(0, 0, 255), 5, 8, 0);
-    // // imshow("Depth", this->depth);
-    // imshow("RGB", RGB);
-    // waitKey(1);
 }
 void UVdetector::display_U_map()
 {
@@ -515,7 +474,6 @@ void UVdetector::display_U_map()
     
     imshow("U map", this->U_map);
     waitKey(1);
-    // cout<<"test"<<endl;
 }
 
 void UVdetector::extract_bird_view()

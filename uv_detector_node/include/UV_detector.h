@@ -5,7 +5,7 @@
 #include <math.h>
 #include <vector>
 #include <kalman_filter.h>
-
+#include <queue>
 using namespace std;
 using namespace cv;
 
@@ -50,6 +50,9 @@ class UVdetector
     public:
     // members
     Mat depth; // depth map 
+    // Mat depth1; // depth map 
+    // Mat depth2; // depth map 
+
     Mat RGB;
     Mat depth_low_res; // depth map with low resolution
     Mat U_map; // U map
@@ -74,7 +77,7 @@ class UVdetector
     UVdetector();
 
     // read data
-    void readdata(Mat depth);
+    void readdata(queue<Mat> depthq);
 
     // read rgb
     void readrgb(Mat RGB);
