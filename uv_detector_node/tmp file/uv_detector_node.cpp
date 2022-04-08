@@ -17,10 +17,6 @@
 #include <queue>
 #include <librealsense2/rs.hpp>
 
-#include "uv_detector_node/BoundingBox3D.h"
-#include "uv_detector_node/BoundingBox3DArray.h"
-
-
 using namespace cv; 
 using namespace std;
 
@@ -37,7 +33,6 @@ class my_detector
 			
 			// Topic published
 			marker_pub = nh.advertise<visualization_msgs::MarkerArray>("visualization_marker", 1);
-			bboxes_pub = nh.advertise<uv_detector_node::BoundingBox3DArray>("Bounding_Box3D", 1);
 			// obstacles = n.advertise<std_msgs::Float64MultiArray>("Obstacles", 1000); // working on
 
 		}  
@@ -101,6 +96,7 @@ class my_detector
 			visualization_msgs::Marker line;
 			visualization_msgs::MarkerArray lines;
 			line.header.frame_id = "/camera_link";
+			line.id=0;
 			line.type = visualization_msgs::Marker::LINE_LIST;
 			line.action = visualization_msgs::Marker::ADD;
 			
@@ -111,16 +107,7 @@ class my_detector
 			line.color.a = 1.0;
 			line.lifetime = ros::Duration(0.05);
 
-			// vision msgs
-			uv_detector_node::BoundingBox3D BBox;
-			uv_detector_node::BoundingBox3DArray BBoxes;
-			BBoxes.header.stamp = ros::Time::now();
-			BBoxes.header.frame_id = 'camera_link';
-
 			for(int i = 0; i < this->uv_detector.box3Ds.size(); i++){
-				
-				// visualization msgs
-
 				float x = uv_detector.box3Ds[i].x / 1000.; // convert from mm to m
 				float y = uv_detector.box3Ds[i].y / 1000.;
 				float z = uv_detector.box3Ds[i].z / 1000.;
@@ -171,34 +158,27 @@ class my_detector
 					{4,7},
 					{6,7}
 				};
-				
 				for (int i=0;i<12;i++){
 					line.points.push_back(verts[vert_idx[i][0]]);
 					line.points.push_back(verts[vert_idx[i][1]]);
 				}
+				// line.points.push_back(verts[0]); line.points.push_back(verts[1]);
+				// line.points.push_back(verts[1]); line.points.push_back(verts[2]);
+				// line.points.push_back(verts[2]); line.points.push_back(verts[3]);
+				// line.points.push_back(verts[0]); line.points.push_back(verts[3]);
+				// line.points.push_back(verts[0]); line.points.push_back(verts[4]);
+				// line.points.push_back(verts[1]); line.points.push_back(verts[5]);
+				// line.points.push_back(verts[3]); line.points.push_back(verts[7]);
+				// line.points.push_back(verts[2]); line.points.push_back(verts[6]);
+				// line.points.push_back(verts[4]); line.points.push_back(verts[5]);
+				// line.points.push_back(verts[5]); line.points.push_back(verts[6]);
+				// line.points.push_back(verts[4]); line.points.push_back(verts[7]);
+				// line.points.push_back(verts[6]); line.points.push_back(verts[7]);
 				
 				lines.markers.push_back(line);
 				line.id++;
-
-				// vision msgs
-				BBox.center.position.x = x;
-				BBox.center.position.y = y;
-				BBox.center.position.z = z;
-
-				BBox.size.x = x_width;
-				BBox.size.y = y_width;
-				BBox.size.z = z_width;
-				BBoxes.boxes.push_back(BBox);
-
 			}
 			marker_pub.publish(lines);
-			bboxes_pub.publish(BBoxes);
-
-
-			
-
-
-
 // 			// visualization using sphere
 			// visualization_msgs::Marker marker;
 			// visualization_msgs::MarkerArray markers;
@@ -248,8 +228,6 @@ class my_detector
 		image_transport::Subscriber imgsub;
 		UVdetector uv_detector;
 		ros::Publisher marker_pub;
-		ros::Publisher bboxes_pub;
-
 		// ros::Publisher obstacles; // working on
 };
 
