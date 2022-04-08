@@ -86,10 +86,11 @@ class my_detector
 //											|   |   |   |
 //											1 _ | _ 2   |
 //											\ |     \ |
-//												0 _ _ _ 3
-//													^z
-//													|/y
-//													--->x
+//					   	 						0 _ _ _ 3
+//
+//															^z
+//															|/y
+//															--->x
 
 			// visualization using bounding boxes
 			visualization_msgs::Marker line;
@@ -143,19 +144,36 @@ class my_detector
 				verts.push_back(p);
 				
 				
-				
-				line.points.push_back(verts[0]); line.points.push_back(verts[1]);
-				line.points.push_back(verts[1]); line.points.push_back(verts[2]);
-				line.points.push_back(verts[2]); line.points.push_back(verts[3]);
-				line.points.push_back(verts[0]); line.points.push_back(verts[3]);
-				line.points.push_back(verts[0]); line.points.push_back(verts[4]);
-				line.points.push_back(verts[1]); line.points.push_back(verts[5]);
-				line.points.push_back(verts[3]); line.points.push_back(verts[7]);
-				line.points.push_back(verts[2]); line.points.push_back(verts[6]);
-				line.points.push_back(verts[4]); line.points.push_back(verts[5]);
-				line.points.push_back(verts[5]); line.points.push_back(verts[6]);
-				line.points.push_back(verts[4]); line.points.push_back(verts[7]);
-				line.points.push_back(verts[6]); line.points.push_back(verts[7]);
+				int vert_idx[12][2] = {
+					{0,1},
+					{1,2},
+					{2,3},
+					{0,3},
+					{0,4},
+					{1,5},
+					{3,7},
+					{2,6},
+					{4,5},
+					{5,6},
+					{4,7},
+					{6,7}
+				};
+				for (int i=0;i<12;i++){
+					line.points.push_back(verts[vert_idx[i][0]]);
+					line.points.push_back(verts[vert_idx[i][1]]);
+				}
+				// line.points.push_back(verts[0]); line.points.push_back(verts[1]);
+				// line.points.push_back(verts[1]); line.points.push_back(verts[2]);
+				// line.points.push_back(verts[2]); line.points.push_back(verts[3]);
+				// line.points.push_back(verts[0]); line.points.push_back(verts[3]);
+				// line.points.push_back(verts[0]); line.points.push_back(verts[4]);
+				// line.points.push_back(verts[1]); line.points.push_back(verts[5]);
+				// line.points.push_back(verts[3]); line.points.push_back(verts[7]);
+				// line.points.push_back(verts[2]); line.points.push_back(verts[6]);
+				// line.points.push_back(verts[4]); line.points.push_back(verts[5]);
+				// line.points.push_back(verts[5]); line.points.push_back(verts[6]);
+				// line.points.push_back(verts[4]); line.points.push_back(verts[7]);
+				// line.points.push_back(verts[6]); line.points.push_back(verts[7]);
 				
 				lines.markers.push_back(line);
 				line.id++;

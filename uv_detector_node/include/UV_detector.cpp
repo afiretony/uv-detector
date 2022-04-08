@@ -145,6 +145,14 @@ UVdetector::UVdetector()
     this->threshold_line = 2;
     this->min_length_line = 6;
     this->show_bounding_box_U = true;
+    // this->row_downsample = 2;
+    // this->col_scale = 0.5;
+    // this->min_dist = 10;
+    // this->max_dist = 5000;
+    // this->threshold_point = 5;
+    // this->threshold_line = 2;
+    // this->min_length_line = 6;
+    this->show_bounding_box_U = true;
     // the following intrinsic parameters can be found in /camera/depth/camera_info
     this->fx = 422.5233;
     this->fy = 422.5233;
